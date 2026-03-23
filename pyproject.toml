@@ -33,8 +33,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+server = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "sqlalchemy[asyncio]>=2.0",
+    "aiosqlite>=0.19",
+    "asyncpg>=0.29",
+    "watchdog>=4.0",
+]
 vector = ["chromadb>=0.4"]
-all = ["chromadb>=0.4"]
+all = ["chromadb>=0.4", "repotalk[server]"]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
@@ -45,7 +53,7 @@ dev = [
 repotalk = "repotalk.cli:cli"
 
 [tool.hatch.build.targets.wheel]
-packages = ["repotalk"]
+packages = ["repotalk", "server"]
 
 [tool.ruff]
 target-version = "py311"

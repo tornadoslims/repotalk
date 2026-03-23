@@ -38,3 +38,7 @@ htmlcov/
 .tox/
 .mypy_cache/
 .docvenv/
+web/node_modules/
+web/dist/
+server/__pycache__/
+**/__pycache__/
