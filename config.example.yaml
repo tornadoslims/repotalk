@@ -1,0 +1,87 @@
+# salt-doc-gen configuration
+# Copy this to salt-doc-gen.yaml and fill in your API keys
+
+# API keys — set the ones you need for your chosen models
+# Keys can also be set via environment variables:
+#   OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY
+api_keys:
+  openai: ''
+  anthropic: ''
+  google: ''
+
+# Model selection per phase
+# Use litellm model format: provider/model-name
+# Examples:
+#   OpenAI:    openai/gpt-4o-mini, openai/gpt-4o
+#   Anthropic: anthropic/claude-sonnet-4-20250514, anthropic/claude-haiku-4-5-20251001
+#   Google:    gemini/gemini-2.5-flash, gemini/gemini-2.5-pro
+#   DeepSeek:  deepseek/deepseek-chat
+#   Local:     ollama/llama3, ollama/codellama
+models:
+  # Per-file documentation (high volume, use fast/cheap model)
+  file_documentation: 'gemini/gemini-2.5-flash'
+
+  # Graph relationship annotation (high volume, use fast/cheap model)
+  graph_enrichment: 'gemini/gemini-2.5-flash'
+
+  # Directory/module/project summaries (lower volume, use smarter model)
+  rollup_summaries: 'gemini/gemini-2.5-pro'
+
+  # Interactive chat (quality matters most)
+  chat: 'anthropic/claude-sonnet-4-20250514'
+
+  # Embeddings for vector retrieval (only needed if chat.retrieval_method = 'vector')
+  embeddings: 'openai/text-embedding-3-small'
+
+# Processing settings
+processing:
+  # Max concurrent LLM calls
+  concurrency: 10
+
+  # Skip files shorter than threshold (usually boilerplate)
+  skip_tiny_files: true
+  tiny_file_threshold: 10  # lines
+
+  # File extensions to process
+  file_extensions:
+    - '.py'
+
+  # Glob patterns to exclude
+  exclude_patterns:
+    - '**/test_*'
+    - '**/.git/**'
+    - '**/migrations/**'
+    - '**/__pycache__/**'
+    - '**/venv/**'
+    - '**/.venv/**'
+    - '**/node_modules/**'
+    - '**/.tox/**'
+    - '**/.mypy_cache/**'
+
+# Output settings
+output:
+  # Where to write documentation (relative to target path)
+  output_dir: './docs-mirror'
+
+  # Graph export format
+  graph_format: 'json'
+
+  # Also generate Mermaid diagram
+  generate_mermaid: true
+
+  # Include source file links in docs
+  include_source_links: true
+
+# Chat/RAG settings
+chat:
+  # Retrieval method: 'keyword' (no extra deps) or 'vector' (requires chromadb)
+  retrieval_method: 'keyword'
+
+  # Number of documents to retrieve per query
+  top_k: 10
+
+  # Include source file paths in chat context
+  include_source: true
+
+  # Number of conversation turns to keep in memory
+  history_length: 10
