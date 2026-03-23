@@ -60,31 +60,15 @@ export function sendMessage(
           }
           try {
             const event: SSEEvent = JSON.parse(data);
-            switch (event.type) {
-              case 'token':
-                callbacks.onToken?.(event.content || '');
-                break;
-              case 'reference':
-                callbacks.onReference?.(event.file || '', event.line);
-                break;
-              case 'graph_highlight':
-                callbacks.onGraphHighlight?.(event.nodes || []);
-                break;
-              case 'done':
-                callbacks.onDone?.(event.cost);
-                break;
-              case 'suggestions':
-                callbacks.onSuggestions?.(event.questions || []);
-                break;
-              case 'error':
-                callbacks.onError?.(event.message || 'Unknown error');
-                break;
-            }
+            _dispatchEvent(event, callbacks);
           } catch {
             // skip malformed JSON
           }
         }
       }
+
+      // If stream ends without explicit done, signal completion
+      callbacks.onDone?.();
     })
     .catch((err) => {
       if (err.name !== 'AbortError') {
@@ -93,4 +77,30 @@ export function sendMessage(
     });
 
   return controller;
+}
+
+function _dispatchEvent(event: SSEEvent, callbacks: SSECallbacks) {
+  switch (event.type) {
+    case 'token':
+      callbacks.onToken?.(event.content || '');
+      break;
+    case 'reference':
+      callbacks.onReference?.(event.source || event.file || '', event.line);
+      break;
+    case 'graph_highlight':
+      callbacks.onGraphHighlight?.(event.nodes || []);
+      break;
+    case 'done':
+      callbacks.onDone?.(event.cost);
+      break;
+    case 'suggestions':
+      callbacks.onSuggestions?.(event.suggestions || event.questions || []);
+      break;
+    case 'error':
+      callbacks.onError?.(event.message || 'Unknown error');
+      break;
+    case 'context_used':
+      // informational, no callback needed
+      break;
+  }
 }

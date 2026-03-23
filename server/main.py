@@ -75,11 +75,12 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database initialized")
 
-    # Load config
-    from repotalk.config import load_config
-    config = load_config()
+    # Load config from project root (where pyproject.toml lives)
+    from repotalk.config import load_config, find_project_root
+    project_root = find_project_root()
+    config = load_config(target_path=project_root)
     set_shared_config(config)
-    logger.info("Config loaded (chat model: %s)", config.models.chat)
+    logger.info("Config loaded from %s (chat model: %s)", project_root, config.models.chat)
 
     # Initialize LLM client
     from repotalk.llm_client import LLMClient
@@ -202,7 +203,7 @@ if __name__ == "__main__":
     import uvicorn
 
     host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8000"))
+    port = int(os.getenv("PORT", "8420"))
     reload = os.getenv("RELOAD", "false").lower() == "true"
 
     uvicorn.run(

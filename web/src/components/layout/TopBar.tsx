@@ -43,7 +43,7 @@ export function TopBar() {
             {projects.map((p) => (
               <SelectItem key={p.id} value={p.id}>
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.status === 'ready' ? '#22c55e' : p.status === 'analyzing' ? '#f59e0b' : '#ef4444' }} />
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.status === 'ready' ? '#22c55e' : p.status === 'indexing' ? '#f59e0b' : '#6b7280' }} />
                   {p.name}
                 </div>
               </SelectItem>

@@ -30,9 +30,9 @@ export function StatusBar() {
         )}
         <span className="flex items-center gap-1">
           <Clock className="w-3 h-3" />
-          {currentProject?.last_updated
-            ? new Date(currentProject.last_updated).toLocaleString()
-            : 'Never'}
+          {currentProject?.last_indexed_at
+            ? new Date(currentProject.last_indexed_at).toLocaleString()
+            : 'Not indexed'}
         </span>
         <span className="flex items-center gap-1">
           <Wifi className="w-3 h-3 text-green-500" />

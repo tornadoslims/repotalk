@@ -53,7 +53,7 @@ export function ChatInput({ onSend }: ChatInputProps) {
 
   const filteredFiles = files.filter((f) => {
     const search = input.split(/\s/).pop()?.slice(1) || '';
-    return f.path.toLowerCase().includes(search.toLowerCase());
+    return f.relative_path.toLowerCase().includes(search.toLowerCase());
   }).slice(0, 8);
 
   return (
@@ -102,13 +102,13 @@ export function ChatInput({ onSend }: ChatInputProps) {
               className="w-full text-left px-3 py-1.5 rounded text-sm hover:bg-muted transition-colors font-mono"
               onClick={() => {
                 const words = input.split(/\s/);
-                words[words.length - 1] = f.path;
+                words[words.length - 1] = f.relative_path;
                 setInput(words.join(' ') + ' ');
                 setShowAt(false);
                 textareaRef.current?.focus();
               }}
             >
-              {f.path}
+              {f.relative_path}
             </button>
           ))}
         </div>
@@ -122,7 +122,7 @@ export function ChatInput({ onSend }: ChatInputProps) {
           className="h-9 w-9 shrink-0"
           onClick={() => {
             // Open a file picker dialog - for now just add a sample
-            const sampleFile = files[0]?.path;
+            const sampleFile = files[0]?.relative_path;
             if (sampleFile) addPinnedFile(sampleFile);
           }}
         >

@@ -123,6 +123,30 @@ async def full_index(
     )
 
 
+@router.get("/{id}/index-status", response_model=IndexStatus)
+async def get_index_status(
+    project: Project = Depends(get_project),
+):
+    existing = indexing.get_task(project.id)
+    if existing and not existing.done():
+        return IndexStatus(
+            project_id=project.id,
+            status="running",
+            message="Indexing in progress",
+        )
+    if project.last_indexed_at:
+        return IndexStatus(
+            project_id=project.id,
+            status="completed",
+            message=f"Last indexed: {project.last_indexed_at.isoformat()}",
+        )
+    return IndexStatus(
+        project_id=project.id,
+        status="idle",
+        message="Not yet indexed",
+    )
+
+
 @router.post("/{id}/index/incremental", response_model=IndexStatus)
 async def incremental_index(
     project: Project = Depends(get_project),

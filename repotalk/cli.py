@@ -406,6 +406,38 @@ def context(
 
 
 @cli.command()
+@click.option("-c", "--config", "config_file", type=click.Path(), default=None, help="Config file path")
+@click.option("-h", "--host", default="0.0.0.0", help="Host to bind to")
+@click.option("-p", "--port", default=8420, type=int, help="Port to bind to")
+@click.option("--reload", is_flag=True, help="Enable auto-reload for development")
+def serve(config_file: str | None, host: str, port: int, reload: bool) -> None:
+    """Start the RepoTalk web server (API + frontend)."""
+    try:
+        import uvicorn
+    except ImportError:
+        console.print("[red]uvicorn not installed. Install with: pip install repotalk[server][/red]")
+        sys.exit(1)
+
+    console.print(f"[bold]Starting RepoTalk server[/bold] on [cyan]{host}:{port}[/cyan]")
+    console.print(f"  API:      http://localhost:{port}/api")
+    console.print(f"  Health:   http://localhost:{port}/health")
+    console.print(f"  Frontend: http://localhost:5173 (run 'cd web && npm run dev' separately)")
+    console.print()
+
+    if config_file:
+        import os
+        os.environ["REPOTALK_CONFIG"] = config_file
+
+    uvicorn.run(
+        "server.main:app",
+        host=host,
+        port=port,
+        reload=reload,
+        log_level="info",
+    )
+
+
+@cli.command()
 @click.argument("path", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option("-c", "--config", "config_file", type=click.Path(), default=None)
 def stats(path: Path, config_file: str | None) -> None:

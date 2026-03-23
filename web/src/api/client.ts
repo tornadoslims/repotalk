@@ -1,6 +1,6 @@
 import type {
   Project,
-  GraphData,
+  GraphDataRaw,
   GraphNode,
   TraceResult,
   ImpactResult,
@@ -9,11 +9,14 @@ import type {
   DocNode,
   Conversation,
   Settings,
+  IndexStatus,
 } from './types';
+import { transformGraphData, deriveProjectStatus } from './types';
+import type { GraphData } from './types';
 
 const API_BASE = '/api';
 
-class ApiError extends Error {
+export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
     super(message);
@@ -34,23 +37,56 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+// Transform raw project from backend (no status field) to frontend Project
+function toProject(raw: Record<string, unknown>): Project {
+  const p = raw as Omit<Project, 'status'> & { status?: string };
+  return {
+    ...p,
+    status: (p.status as Project['status']) || deriveProjectStatus(p as Omit<Project, 'status'>),
+  } as Project;
+}
+
 export const api = {
   // Projects
-  getProjects: () => request<Project[]>('/projects'),
-  getProject: (id: string) => request<Project>(`/projects/${id}`),
-  createProject: (data: { name: string; path: string; description?: string }) =>
-    request<Project>('/projects', { method: 'POST', body: JSON.stringify(data) }),
+  getProjects: async (): Promise<Project[]> => {
+    const raw = await request<Record<string, unknown>[]>('/projects');
+    return raw.map(toProject);
+  },
+  getProject: async (id: string): Promise<Project> => {
+    const raw = await request<Record<string, unknown>>(`/projects/${id}`);
+    return toProject(raw);
+  },
+  createProject: async (data: { name: string; path: string; description?: string }): Promise<Project> => {
+    const raw = await request<Record<string, unknown>>('/projects', {
+      method: 'POST',
+      body: JSON.stringify({ name: data.name, source_path: data.path }),
+    });
+    return toProject(raw);
+  },
   updateProject: (id: string, data: Partial<Project>) =>
     request<Project>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteProject: (id: string) =>
     request<void>(`/projects/${id}`, { method: 'DELETE' }),
 
-  // Graph
-  getGraph: (projectId: string) => request<GraphData>(`/projects/${projectId}/graph`),
-  getSubgraph: (projectId: string, nodeId: string, depth?: number) =>
-    request<GraphData>(`/projects/${projectId}/graph/subgraph?node_id=${nodeId}${depth ? `&depth=${depth}` : ''}`),
+  // Indexing
+  indexProject: (id: string) =>
+    request<IndexStatus>(`/projects/${id}/index`, { method: 'POST' }),
+  getIndexStatus: (id: string) =>
+    request<IndexStatus>(`/projects/${id}/index-status`),
+
+  // Graph - transform raw backend data to frontend format
+  getGraph: async (projectId: string): Promise<GraphData> => {
+    const raw = await request<GraphDataRaw>(`/projects/${projectId}/graph`);
+    return transformGraphData(raw);
+  },
+  getSubgraph: async (projectId: string, nodeId: string, depth?: number): Promise<GraphData> => {
+    const raw = await request<GraphDataRaw>(
+      `/projects/${projectId}/graph/subgraph?node=${nodeId}${depth ? `&depth=${depth}` : ''}`
+    );
+    return transformGraphData(raw);
+  },
   getGraphNodes: (projectId: string, query?: string) =>
-    request<GraphNode[]>(`/projects/${projectId}/graph/nodes${query ? `?q=${encodeURIComponent(query)}` : ''}`),
+    request<GraphNode[]>(`/projects/${projectId}/graph/nodes${query ? `?search=${encodeURIComponent(query)}` : ''}`),
   traceNode: (projectId: string, nodeId: string) =>
     request<TraceResult>(`/projects/${projectId}/graph/trace/${nodeId}`),
   impactNode: (projectId: string, nodeId: string) =>
@@ -71,8 +107,11 @@ export const api = {
   // Conversations
   getConversations: (projectId: string) =>
     request<Conversation[]>(`/projects/${projectId}/conversations`),
-  createConversation: (projectId: string) =>
-    request<Conversation>(`/projects/${projectId}/conversations`, { method: 'POST', body: JSON.stringify({}) }),
+  createConversation: (projectId: string, title?: string) =>
+    request<Conversation>(`/projects/${projectId}/conversations`, {
+      method: 'POST',
+      body: JSON.stringify({ title }),
+    }),
   deleteConversation: (conversationId: string) =>
     request<void>(`/conversations/${conversationId}`, { method: 'DELETE' }),
 

@@ -13,45 +13,14 @@ import { useState } from 'react';
 // Register fcose layout once
 try { cytoscape.use(fcose); } catch { /* already registered */ }
 
-// Sample data for demo
-const sampleNodes: GraphNode[] = [
-  { id: 'main', label: 'main.py', type: 'file' },
-  { id: 'auth', label: 'auth.py', type: 'file' },
-  { id: 'models', label: 'models.py', type: 'file' },
-  { id: 'user_cls', label: 'User', type: 'class' },
-  { id: 'auth_fn', label: 'authenticate', type: 'function' },
-  { id: 'login_fn', label: 'login', type: 'function' },
-  { id: 'db', label: 'database', type: 'module' },
-  { id: 'hash_fn', label: 'hash_password', type: 'function' },
-  { id: 'session', label: 'Session', type: 'class' },
-  { id: 'jwt', label: 'jwt', type: 'external' },
-  { id: 'routes', label: 'routes.py', type: 'file' },
-  { id: 'middleware', label: 'middleware.py', type: 'file' },
-];
-
-const sampleEdges = [
-  { id: 'e1', source: 'main', target: 'auth', type: 'imports' as const },
-  { id: 'e2', source: 'main', target: 'routes', type: 'imports' as const },
-  { id: 'e3', source: 'auth', target: 'models', type: 'imports' as const },
-  { id: 'e4', source: 'auth_fn', target: 'user_cls', type: 'calls' as const },
-  { id: 'e5', source: 'login_fn', target: 'auth_fn', type: 'calls' as const },
-  { id: 'e6', source: 'session', target: 'user_cls', type: 'inherits' as const },
-  { id: 'e7', source: 'auth', target: 'jwt', type: 'imports' as const },
-  { id: 'e8', source: 'login_fn', target: 'hash_fn', type: 'calls' as const },
-  { id: 'e9', source: 'routes', target: 'middleware', type: 'imports' as const },
-  { id: 'e10', source: 'middleware', target: 'auth', type: 'imports' as const },
-  { id: 'e11', source: 'models', target: 'db', type: 'composes' as const },
-  { id: 'e12', source: 'auth_fn', target: 'jwt', type: 'decorates' as const },
-];
-
 export function GraphCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const { graphData, setSelectedNode, highlightedNodes, edgeFilters, layoutMode, searchQuery } = useGraphStore();
   const [tooltipNode, setTooltipNode] = useState<{ node: GraphNode; x: number; y: number } | null>(null);
 
-  const nodes = graphData?.nodes || sampleNodes;
-  const edges = graphData?.edges || sampleEdges;
+  const nodes = graphData?.nodes || [];
+  const edges = graphData?.edges || [];
 
   // Initialize cytoscape
   useEffect(() => {
@@ -200,12 +169,14 @@ export function GraphCanvas() {
 
     cy.elements().remove();
 
+    if (nodes.length === 0) return;
+
     const elements: cytoscape.ElementDefinition[] = [
       ...nodes.map((n) => ({
         data: {
           id: n.id,
           label: n.label,
-          color: NODE_COLORS[n.type] || NODE_COLORS.external,
+          color: NODE_COLORS[n.type] || NODE_COLORS.external || '#6b7280',
           nodeType: n.type,
           summary: n.summary || '',
           size: n.type === 'file' ? 35 : n.type === 'class' ? 30 : n.type === 'module' ? 35 : 25,
@@ -227,7 +198,7 @@ export function GraphCanvas() {
     cy.add(elements);
 
     const layoutConfig = layouts[layoutMode] || layouts.fcose;
-    cy.layout(layoutConfig as any).run();
+    cy.layout(layoutConfig as cytoscape.LayoutOptions).run();
   }, [nodes, edges, layoutMode]);
 
   // Apply edge filters
@@ -278,6 +249,11 @@ export function GraphCanvas() {
   return (
     <div className="relative w-full h-full bg-background">
       <div ref={containerRef} className="w-full h-full" />
+      {nodes.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+          No graph data. Index the project to build the knowledge graph.
+        </div>
+      )}
       <GraphControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} onFit={handleFit} />
       <GraphLegend />
       {tooltipNode && <GraphTooltip node={tooltipNode.node} x={tooltipNode.x} y={tooltipNode.y} />}

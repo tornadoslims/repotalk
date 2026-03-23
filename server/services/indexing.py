@@ -35,6 +35,19 @@ def get_task(project_id: uuid.UUID) -> asyncio.Task | None:
     return _running_tasks.get(project_id)
 
 
+async def _broadcast_progress(project_id: uuid.UUID, phase: str, message: str, progress: float = 0.0):
+    """Broadcast indexing progress via WebSocket if available."""
+    try:
+        from server.main import ws_manager
+        await ws_manager.send_to_project(project_id, "index_progress", {
+            "phase": phase,
+            "message": message,
+            "progress": progress,
+        })
+    except Exception:
+        pass  # WebSocket not available
+
+
 async def run_full_index(project_id: uuid.UUID, config: Any, llm_client: Any) -> None:
     """Full re-index: crawl, analyze, build graph, document, rollup."""
     task = asyncio.current_task()
@@ -52,24 +65,35 @@ async def run_full_index(project_id: uuid.UUID, config: Any, llm_client: Any) ->
             root = Path(project.source_path)
             if not root.is_dir():
                 logger.error("Source path %s is not a directory", root)
+                await _broadcast_progress(project_id, "error", f"Source path not found: {root}")
                 return
 
             logger.info("Starting full index for project %s at %s", project.name, root)
+            await _broadcast_progress(project_id, "crawl", "Crawling files...", 0.0)
 
             # Phase 1: Crawl
             from repotalk.crawler import crawl
             files = crawl(root, config)
             logger.info("Crawled %d files", len(files))
+            await _broadcast_progress(project_id, "analyze", f"Analyzing {len(files)} files...", 0.1)
 
             # Phase 2: Analyze
             from repotalk.analyzer import analyze_file
             analyses = []
-            for fp in files:
+            for i, fp in enumerate(files):
                 try:
                     analysis = analyze_file(fp, root)
                     analyses.append(analysis)
                 except Exception as exc:
                     logger.warning("Failed to analyze %s: %s", fp, exc)
+                if (i + 1) % 10 == 0:
+                    await _broadcast_progress(
+                        project_id, "analyze",
+                        f"Analyzed {i + 1}/{len(files)} files...",
+                        0.1 + 0.2 * (i + 1) / len(files)
+                    )
+
+            await _broadcast_progress(project_id, "graph", "Building knowledge graph...", 0.3)
 
             # Phase 3: Build knowledge graph
             from repotalk.graph import KnowledgeGraph
@@ -77,22 +101,22 @@ async def run_full_index(project_id: uuid.UUID, config: Any, llm_client: Any) ->
             graph.build_from_analyses(analyses)
             graph_stats = graph.stats()
 
-            # Phase 4: Document files
+            await _broadcast_progress(project_id, "document", f"Documenting {len(analyses)} files...", 0.35)
+
+            # Phase 4: Document files (async)
             from repotalk.documenter import document_all
             from repotalk.output import load_hash_cache, save_hash_cache
             hash_cache = load_hash_cache(root, config)
-            file_docs = await asyncio.to_thread(
-                lambda: asyncio.get_event_loop().run_until_complete(
-                    _noop()  # placeholder - document_all is sync with async LLM calls inside
-                )
-            )
-            # document_all uses the LLM client internally
-            file_docs = document_all(analyses, root, llm_client, config, graph, hash_cache)
+            file_docs = await document_all(analyses, root, llm_client, config, graph, hash_cache)
             save_hash_cache(hash_cache, root, config)
+
+            await _broadcast_progress(project_id, "rollup", "Generating summaries...", 0.7)
 
             # Phase 5: Rollup summaries
             from repotalk.rollup import rollup_all
-            dir_summaries, project_summary = rollup_all(file_docs, root, llm_client, config, graph)
+            dir_summaries, project_summary = await rollup_all(file_docs, root, llm_client, config, graph)
+
+            await _broadcast_progress(project_id, "output", "Writing outputs...", 0.85)
 
             # Phase 6: Write outputs
             from repotalk.output import (
@@ -112,6 +136,8 @@ async def run_full_index(project_id: uuid.UUID, config: Any, llm_client: Any) ->
 
             output_dir = get_output_dir(root, config)
 
+            await _broadcast_progress(project_id, "persist", "Saving to database...", 0.9)
+
             # Phase 7: Persist to database
             now = datetime.now(timezone.utc)
 
@@ -123,7 +149,6 @@ async def run_full_index(project_id: uuid.UUID, config: Any, llm_client: Any) ->
 
             # Insert source files
             file_doc_map = {d.relative_path: d for d in file_docs}
-            analysis_map = {a.relative_path: a for a in analyses}
             source_file_map: dict[str, SourceFile] = {}
 
             for analysis in analyses:
@@ -200,7 +225,7 @@ async def run_full_index(project_id: uuid.UUID, config: Any, llm_client: Any) ->
                 db.add(row)
 
             # Insert directory summaries
-            for i, ds in enumerate(dir_summaries):
+            for ds in dir_summaries:
                 row = DirectorySummaryRow(
                     project_id=project_id,
                     relative_path=ds.relative_path or ds.dir_path,
@@ -224,8 +249,11 @@ async def run_full_index(project_id: uuid.UUID, config: Any, llm_client: Any) ->
             logger.info("Full index complete for %s: %d files, %d nodes, %d edges",
                         project.name, len(analyses), project.graph_node_count, project.graph_edge_count)
 
+            await _broadcast_progress(project_id, "complete", "Indexing complete!", 1.0)
+
     except Exception:
         logger.exception("Full index failed for project %s", project_id)
+        await _broadcast_progress(project_id, "error", "Indexing failed - check server logs")
     finally:
         _running_tasks.pop(project_id, None)
 
@@ -281,7 +309,7 @@ async def run_incremental_index(project_id: uuid.UUID, config: Any, llm_client: 
 
             # Re-document only changed files
             from repotalk.documenter import document_all
-            new_docs = document_all(changed_files, root, llm_client, config, graph, hash_cache)
+            new_docs = await document_all(changed_files, root, llm_client, config, graph, hash_cache)
             save_hash_cache(hash_cache, root, config)
 
             # Update DB for changed files
@@ -334,10 +362,6 @@ async def run_incremental_index(project_id: uuid.UUID, config: Any, llm_client: 
         logger.exception("Incremental index failed for project %s", project_id)
     finally:
         _running_tasks.pop(project_id, None)
-
-
-async def _noop():
-    pass
 
 
 def _detect_language(path: str) -> str:

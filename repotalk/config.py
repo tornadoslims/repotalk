@@ -9,7 +9,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, Field, model_validator
 
-DEFAULT_CONFIG_NAME = "repotalk.yaml"
+DEFAULT_CONFIG_NAMES = ["repotalk.yaml", "config.yaml"]
 
 
 class ApiKeysConfig(BaseModel):
@@ -80,10 +80,20 @@ def find_config(start_path: Path) -> Path | None:
     """Walk up from start_path looking for config file."""
     current = start_path.resolve()
     for directory in [current] + list(current.parents):
-        candidate = directory / DEFAULT_CONFIG_NAME
-        if candidate.exists():
-            return candidate
+        for name in DEFAULT_CONFIG_NAMES:
+            candidate = directory / name
+            if candidate.exists():
+                return candidate
     return None
+
+
+def find_project_root() -> Path:
+    """Find the project root by looking for pyproject.toml walking up from this file."""
+    current = Path(__file__).resolve().parent
+    for directory in [current] + list(current.parents):
+        if (directory / "pyproject.toml").exists():
+            return directory
+    return Path.cwd()
 
 
 def load_config(config_path: Path | None = None, target_path: Path | None = None) -> Config:

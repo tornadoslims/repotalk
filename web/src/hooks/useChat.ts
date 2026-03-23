@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useChatStore } from '@/stores/chatStore';
+import { useProjectStore } from '@/stores/projectStore';
 import { useSSE } from './useSSE';
 import { api } from '@/api/client';
 import { useGraphStore } from '@/stores/graphStore';
@@ -24,26 +25,23 @@ export function useChat() {
 
   const sendMessage = useCallback(
     async (content: string) => {
+      const projectId = useProjectStore.getState().currentProject?.id;
+      if (!projectId) {
+        console.error('No project selected');
+        return;
+      }
+
       let convId = currentConversation?.id;
 
       // Create conversation if none exists
       if (!convId) {
         try {
-          const projectId = 'default'; // Would come from project store in real app
-          const conv = await api.createConversation(projectId);
+          const conv = await api.createConversation(projectId, content.slice(0, 50));
           setCurrentConversation(conv);
           convId = conv.id;
-        } catch {
-          // Fallback for demo mode
-          convId = crypto.randomUUID();
-          setCurrentConversation({
-            id: convId,
-            project_id: 'default',
-            title: content.slice(0, 50),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            message_count: 0,
-          });
+        } catch (err) {
+          console.error('Failed to create conversation:', err);
+          return;
         }
       }
 
@@ -66,7 +64,6 @@ export function useChat() {
         onSuggestions: (questions) => setSuggestedQuestions(questions),
         onDone: (cost) => finishStream(cost),
         onError: (message) => {
-          // On error, show it as a message and stop streaming
           finishStream(0);
           console.error('Chat error:', message);
         },
@@ -81,7 +78,6 @@ export function useChat() {
         const convs = await api.getConversations(projectId);
         setConversations(convs);
       } catch {
-        // Demo mode - use empty list
         setConversations([]);
       }
     },

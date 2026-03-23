@@ -222,4 +222,6 @@ def _generate_suggestions(question: str, response: str) -> list[str]:
 
 
 def _sse(event: str, data: Any) -> str:
-    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+    """Format an SSE event. Include type in data payload for easy frontend parsing."""
+    payload = {"type": event, **data} if isinstance(data, dict) else {"type": event, "data": data}
+    return f"event: {event}\ndata: {json.dumps(payload)}\n\n"
