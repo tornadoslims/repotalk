@@ -1,0 +1,16 @@
+sequenceDiagram
+    participant U as User
+    participant C as Cartograph
+    participant R as Retrieval
+    participant A as Agent
+
+    U->>C: Describe issue
+    C->>R: Find relevant files
+    R-->>C: Files + graph context
+    C-->>U: Shows context panel
+    U->>C: Click Fix This
+    C->>A: Spawn with context
+    A-->>C: Stream progress
+    C-->>U: Show diff
+    U->>C: Approve
+    C->>A: Create PR

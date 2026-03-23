@@ -1,0 +1,12 @@
+graph TB
+    GH["GitHub Webhook"] --> R["Webhook Receiver"]
+    GL["GitLab Webhook"] --> R
+    FS["File Watcher"] --> D["Change Detection"]
+    M["Manual Trigger"] --> Q["Update Queue"]
+    R --> D
+    D --> Q
+    Q --> A1["Re-analyze files"]
+    A1 --> A2["Re-document files"]
+    A2 --> A3["Update graph"]
+    A3 --> A4["Re-rollup dirs"]
+    A4 --> A5["Re-embed docs"]

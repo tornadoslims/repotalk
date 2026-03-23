@@ -1,0 +1,6 @@
+graph LR
+    A["Source Code"] --> B["Phase 1:\nCrawl & AST"]
+    B --> C["Phase 2:\nPer-File Docs"]
+    C --> D["Phase 3:\nGraph Enrich"]
+    D --> E["Phase 4:\nRollups"]
+    E --> F["Phase 5:\nEmbed & Index"]

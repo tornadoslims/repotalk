@@ -1,0 +1,49 @@
+graph TB
+    subgraph Clients["Client Layer"]
+        CLI["CLI (carto)"]
+        WebUI["Web UI (React)"]
+        VSCode["VS Code / Cursor"]
+        PyCharm["PyCharm / IntelliJ"]
+    end
+
+    subgraph Backend["Backend Layer (FastAPI)"]
+        ChatAPI["Chat API (SSE streaming)"]
+        GraphAPI["Graph Query API"]
+        AgentOrch["Agent Orchestrator"]
+        Retrieval["Retrieval Engine (RAG)"]
+        Auth["Auth & Multi-user"]
+        Webhooks["Webhook / FS Monitor"]
+    end
+
+    subgraph Engine["Core Engine"]
+        Crawler["Crawler"]
+        AST["AST Analyzer"]
+        GraphBuild["Graph Builder"]
+        LLMDoc["LLM Documenter"]
+        Rollup["Rollup Engine"]
+        Embedder["Embedder"]
+    end
+
+    subgraph Data["Data Layer"]
+        SQLite["SQLite / Postgres"]
+        GraphStore["Graph Store (NetworkX/JSON)"]
+        VectorDB["Vector Store (ChromaDB)"]
+        FileSystem["Mirror Tree (.md files)"]
+    end
+
+    subgraph External["External Services"]
+        LLMProviders["LLM Providers"]
+        GitHub["GitHub / GitLab"]
+        CodingAgents["Coding Agents"]
+    end
+
+    CLI --> Engine
+    WebUI --> Backend
+    VSCode --> Backend
+    PyCharm --> Backend
+    Backend --> Engine
+    Backend --> Data
+    Engine --> Data
+    Engine --> LLMProviders
+    Webhooks --> GitHub
+    AgentOrch --> CodingAgents

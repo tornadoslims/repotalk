@@ -37,3 +37,4 @@ salt-doc-gen.yaml
 htmlcov/
 .tox/
 .mypy_cache/
+.docvenv/

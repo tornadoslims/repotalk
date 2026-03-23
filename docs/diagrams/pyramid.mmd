@@ -1,0 +1,26 @@
+graph TB
+    A["Architecture Overview\n1 document"]
+    B1["Module:\nmicroservices"]
+    B2["Module:\nsalt-monorepo"]
+    B3["Module:\nsalt-common-sdk"]
+    C1["Directory:\nauth-service"]
+    C2["Directory:\nbuild-service"]
+    D1["auth.py"]
+    D2["middleware.py"]
+    D3["validators.py"]
+
+    A --> B1
+    A --> B2
+    A --> B3
+    B1 --> C1
+    B1 --> C2
+    C1 --> D1
+    C1 --> D2
+    C1 --> D3
+
+    style A fill:#8b5cf6,color:#fff
+    style B1 fill:#3b82f6,color:#fff
+    style B2 fill:#3b82f6,color:#fff
+    style B3 fill:#3b82f6,color:#fff
+    style C1 fill:#10b981,color:#fff
+    style C2 fill:#10b981,color:#fff

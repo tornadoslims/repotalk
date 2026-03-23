@@ -1,0 +1,15 @@
+erDiagram
+    Projects ||--o{ SourceFiles : contains
+    Projects ||--o{ GraphNodes : contains
+    Projects ||--o{ GraphEdges : contains
+    Projects ||--o{ DirectorySummaries : contains
+    Projects ||--o{ Conversations : has
+    Projects ||--o{ Annotations : has
+    Projects ||--o{ AgentSessions : has
+    SourceFiles ||--o{ GraphNodes : defines
+    GraphNodes ||--o{ GraphEdges : source
+    GraphNodes ||--o{ GraphEdges : target
+    Conversations ||--o{ Messages : contains
+    Conversations }o--|| Users : belongs_to
+    AgentSessions }o--|| Users : initiated_by
+    AgentSessions }o--|| Conversations : linked_to
