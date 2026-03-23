@@ -1,11 +1,11 @@
 # Product Requirements Document (PRD)
 
-## Codebase Cartograph — *Map your codebase. Understand everything.*
+## RepoTalk — *Map your codebase. Understand everything.*
 
 > **Status:** Draft v1.0  
 > **Date:** March 22, 2026  
 > **Author:** JBOC / Salt AI Engineering  
-> **Repository:** [tornadoslims/codebase-cartograph](https://github.com/tornadoslims/codebase-cartograph)
+> **Repository:** [tornadoslims/repotalk](https://github.com/tornadoslims/repotalk)
 
 ---
 
@@ -33,7 +33,7 @@
 
 ## 1. Executive Summary
 
-Codebase Cartograph is an **open-source, AI-powered codebase intelligence platform** that transforms any codebase into a navigable, queryable knowledge system. It combines static analysis, LLM-powered documentation generation, knowledge graph construction, and a conversational interface to let both humans and AI agents deeply understand codebases.
+RepoTalk is an **open-source, AI-powered codebase intelligence platform** that transforms any codebase into a navigable, queryable knowledge system. It combines static analysis, LLM-powered documentation generation, knowledge graph construction, and a conversational interface to let both humans and AI agents deeply understand codebases.
 
 **Core value proposition:** Instead of reading thousands of files to understand a codebase, users interact with a structured documentation pyramid, an interactive knowledge graph, and a chat interface that routes questions to the right level of detail automatically.
 
@@ -903,7 +903,7 @@ graph TB
 
 ```yaml
 # ============================================================
-# Codebase Cartograph Configuration
+# RepoTalk Configuration
 # Copy to config.yaml and fill in your API keys
 # ============================================================
 
@@ -1077,7 +1077,7 @@ After initial indexing, updates only re-process changed files. Typical cost for 
 
 ```mermaid
 gantt
-    title Codebase Cartograph — Build Roadmap
+    title RepoTalk — Build Roadmap
     dateFormat YYYY-MM-DD
     axisFormat %b %d
 
@@ -1262,4 +1262,4 @@ gantt
 ---
 
 *Document generated: March 22, 2026*  
-*Repository: [tornadoslims/codebase-cartograph](https://github.com/tornadoslims/codebase-cartograph)*
+*Repository: [tornadoslims/repotalk](https://github.com/tornadoslims/repotalk)*

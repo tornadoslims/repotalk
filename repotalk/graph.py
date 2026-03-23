@@ -9,7 +9,7 @@ from typing import Any
 
 import networkx as nx
 
-from salt_doc_gen.models import EdgeType, FileAnalysis, GraphEdge, GraphNode
+from repotalk.models import EdgeType, FileAnalysis, GraphEdge, GraphNode
 
 logger = logging.getLogger(__name__)
 

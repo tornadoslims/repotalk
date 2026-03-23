@@ -9,10 +9,10 @@ from pathlib import Path
 
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
-from salt_doc_gen.config import Config
-from salt_doc_gen.graph import KnowledgeGraph
-from salt_doc_gen.llm_client import LLMClient
-from salt_doc_gen.models import FileAnalysis, FileDocumentation, HashCache
+from repotalk.config import Config
+from repotalk.graph import KnowledgeGraph
+from repotalk.llm_client import LLMClient
+from repotalk.models import FileAnalysis, FileDocumentation, HashCache
 
 logger = logging.getLogger(__name__)
 

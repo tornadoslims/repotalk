@@ -8,7 +8,7 @@ from typing import Any
 
 import litellm
 
-from salt_doc_gen.config import Config
+from repotalk.config import Config
 
 logger = logging.getLogger(__name__)
 

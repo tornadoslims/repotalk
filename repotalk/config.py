@@ -9,7 +9,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, Field, model_validator
 
-DEFAULT_CONFIG_NAME = "salt-doc-gen.yaml"
+DEFAULT_CONFIG_NAME = "repotalk.yaml"
 
 
 class ApiKeysConfig(BaseModel):
@@ -91,7 +91,7 @@ def load_config(config_path: Path | None = None, target_path: Path | None = None
 
     Resolution order:
     1. Explicit config_path if given
-    2. Walk up from target_path looking for salt-doc-gen.yaml
+    2. Walk up from target_path looking for repotalk.yaml
     3. Fall back to defaults
     """
     if config_path and config_path.exists():

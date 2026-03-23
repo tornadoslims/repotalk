@@ -6,7 +6,7 @@ import fnmatch
 import logging
 from pathlib import Path
 
-from salt_doc_gen.config import Config
+from repotalk.config import Config
 
 logger = logging.getLogger(__name__)
 

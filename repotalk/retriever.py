@@ -7,9 +7,9 @@ import re
 from pathlib import Path
 from typing import Any
 
-from salt_doc_gen.config import Config
-from salt_doc_gen.embedder import Embedder
-from salt_doc_gen.models import RetrievedContext
+from repotalk.config import Config
+from repotalk.embedder import Embedder
+from repotalk.models import RetrievedContext
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ class VectorRetriever:
         except ImportError:
             raise ImportError(
                 "ChromaDB is required for vector retrieval. "
-                "Install it with: pip install 'salt-doc-gen[vector]'"
+                "Install it with: pip install 'repotalk[vector]'"
             )
 
         chroma_dir = self.docs_dir / ".chroma"

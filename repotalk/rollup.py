@@ -8,10 +8,10 @@ from pathlib import Path
 
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
-from salt_doc_gen.config import Config
-from salt_doc_gen.graph import KnowledgeGraph
-from salt_doc_gen.llm_client import LLMClient
-from salt_doc_gen.models import DirectorySummary, FileDocumentation, ProjectSummary
+from repotalk.config import Config
+from repotalk.graph import KnowledgeGraph
+from repotalk.llm_client import LLMClient
+from repotalk.models import DirectorySummary, FileDocumentation, ProjectSummary
 
 logger = logging.getLogger(__name__)
 

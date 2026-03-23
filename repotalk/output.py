@@ -6,9 +6,9 @@ import json
 import logging
 from pathlib import Path
 
-from salt_doc_gen.config import Config
-from salt_doc_gen.graph import KnowledgeGraph
-from salt_doc_gen.models import (
+from repotalk.config import Config
+from repotalk.graph import KnowledgeGraph
+from repotalk.models import (
     DirectorySummary,
     FileDocumentation,
     HashCache,
@@ -17,7 +17,7 @@ from salt_doc_gen.models import (
 
 logger = logging.getLogger(__name__)
 
-HASH_CACHE_FILE = ".salt-doc-gen-hashes.json"
+HASH_CACHE_FILE = ".repotalk-hashes.json"
 
 
 def get_output_dir(root: Path, config: Config) -> Path:
@@ -114,7 +114,7 @@ def load_analysis_cache(root: Path, config: Config) -> list | None:
         return None
 
     try:
-        from salt_doc_gen.models import FileAnalysis
+        from repotalk.models import FileAnalysis
         data = json.loads(cache_path.read_text())
         return [FileAnalysis(**item) for item in data]
     except Exception as e:

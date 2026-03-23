@@ -1,5 +1,5 @@
-# salt-doc-gen configuration
-# Copy this to salt-doc-gen.yaml and fill in your API keys
+# repotalk configuration
+# Copy this to repotalk.yaml and fill in your API keys
 
 # API keys — set the ones you need for your chosen models
 # Keys can also be set via environment variables:

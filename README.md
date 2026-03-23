@@ -1,4 +1,4 @@
-# salt-doc-gen
+# repotalk
 
 AI-powered codebase documentation generator. Crawls a Python codebase, builds a knowledge graph via AST analysis, and uses configurable LLMs to generate hierarchical documentation with a RAG chat interface.
 
@@ -32,31 +32,31 @@ pip install -e ".[vector]"
 
 ```bash
 # 1. Copy and edit config
-cp config.example.yaml salt-doc-gen.yaml
-# Edit salt-doc-gen.yaml — add your API keys
+cp config.example.yaml repotalk.yaml
+# Edit repotalk.yaml — add your API keys
 
 # 2. Run all phases
-salt-doc-gen run ./my-project
+repotalk run ./my-project
 
 # Or run phases individually:
-salt-doc-gen analyze ./my-project    # Free — AST + graph
-salt-doc-gen document ./my-project   # LLM — per-file docs
-salt-doc-gen enrich ./my-project     # LLM — graph annotations
-salt-doc-gen rollup ./my-project     # LLM — hierarchical summaries
+repotalk analyze ./my-project    # Free — AST + graph
+repotalk document ./my-project   # LLM — per-file docs
+repotalk enrich ./my-project     # LLM — graph annotations
+repotalk rollup ./my-project     # LLM — hierarchical summaries
 
 # 3. Chat with your codebase
-salt-doc-gen chat ./my-project
+repotalk chat ./my-project
 
 # 4. Export context for external LLM use
-salt-doc-gen context ./my-project "how does authentication work"
+repotalk context ./my-project "how does authentication work"
 
 # 5. Check stats and cost estimates
-salt-doc-gen stats ./my-project
+repotalk stats ./my-project
 ```
 
 ## Configuration
 
-Config is loaded from `salt-doc-gen.yaml` (searched upward from target path). See `config.example.yaml` for all options.
+Config is loaded from `repotalk.yaml` (searched upward from target path). See `config.example.yaml` for all options.
 
 ### Model Selection
 

@@ -7,7 +7,7 @@ import hashlib
 import logging
 from pathlib import Path
 
-from salt_doc_gen.models import (
+from repotalk.models import (
     ArgumentInfo,
     ClassInfo,
     FileAnalysis,

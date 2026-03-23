@@ -1,4 +1,4 @@
-"""Pydantic data models for all entities in salt-doc-gen."""
+"""Pydantic data models for all entities in repotalk."""
 
 from __future__ import annotations
 

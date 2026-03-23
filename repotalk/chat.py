@@ -10,10 +10,10 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 
-from salt_doc_gen.config import Config
-from salt_doc_gen.llm_client import LLMClient
-from salt_doc_gen.models import ChatMessage, RetrievedContext
-from salt_doc_gen.retriever import DocumentRetriever, VectorRetriever
+from repotalk.config import Config
+from repotalk.llm_client import LLMClient
+from repotalk.models import ChatMessage, RetrievedContext
+from repotalk.retriever import DocumentRetriever, VectorRetriever
 
 logger = logging.getLogger(__name__)
 console = Console()
@@ -128,7 +128,7 @@ class ChatSession:
         """Run interactive chat REPL."""
         console.print(
             Panel(
-                "[bold green]salt-doc-gen Chat[/bold green]\n"
+                "[bold green]repotalk Chat[/bold green]\n"
                 "Ask questions about your codebase. Type 'quit' or 'exit' to stop.\n"
                 "Type 'clear' to reset conversation history.",
                 title="Codebase Chat",

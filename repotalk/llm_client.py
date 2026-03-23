@@ -10,8 +10,8 @@ from typing import Any
 import litellm
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from salt_doc_gen.config import Config
-from salt_doc_gen.models import CostRecord
+from repotalk.config import Config
+from repotalk.models import CostRecord
 
 logger = logging.getLogger(__name__)
 

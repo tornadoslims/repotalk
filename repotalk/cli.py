@@ -13,7 +13,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from salt_doc_gen.config import Config, load_config
+from repotalk.config import Config, load_config
 
 console = Console()
 
@@ -37,9 +37,9 @@ def _load_cfg(config: str | None, path: Path) -> Config:
 
 
 @click.group()
-@click.version_option(package_name="salt-doc-gen")
+@click.version_option(package_name="repotalk")
 def cli() -> None:
-    """salt-doc-gen — AI-powered codebase documentation generator."""
+    """repotalk — AI-powered codebase documentation generator."""
     pass
 
 
@@ -53,10 +53,10 @@ def analyze(path: Path, config_file: str | None, verbose: bool) -> None:
     cfg = _load_cfg(config_file, path)
     root = path.resolve()
 
-    from salt_doc_gen.analyzer import analyze_file
-    from salt_doc_gen.crawler import crawl
-    from salt_doc_gen.graph import KnowledgeGraph
-    from salt_doc_gen.output import get_output_dir, write_analysis_cache, write_graph
+    from repotalk.analyzer import analyze_file
+    from repotalk.crawler import crawl
+    from repotalk.graph import KnowledgeGraph
+    from repotalk.output import get_output_dir, write_analysis_cache, write_graph
 
     console.print(f"[bold]Analyzing[/bold] {root}")
     start = time.monotonic()
@@ -104,10 +104,10 @@ def document(path: Path, config_file: str | None, verbose: bool) -> None:
     cfg = _load_cfg(config_file, path)
     root = path.resolve()
 
-    from salt_doc_gen.documenter import document_all
-    from salt_doc_gen.graph import KnowledgeGraph
-    from salt_doc_gen.llm_client import LLMClient
-    from salt_doc_gen.output import (
+    from repotalk.documenter import document_all
+    from repotalk.graph import KnowledgeGraph
+    from repotalk.llm_client import LLMClient
+    from repotalk.output import (
         get_output_dir,
         load_analysis_cache,
         load_hash_cache,
@@ -150,9 +150,9 @@ def enrich(path: Path, config_file: str | None, verbose: bool) -> None:
     cfg = _load_cfg(config_file, path)
     root = path.resolve()
 
-    from salt_doc_gen.graph import KnowledgeGraph
-    from salt_doc_gen.llm_client import LLMClient
-    from salt_doc_gen.output import get_output_dir, write_graph
+    from repotalk.graph import KnowledgeGraph
+    from repotalk.llm_client import LLMClient
+    from repotalk.output import get_output_dir, write_graph
 
     output_dir = get_output_dir(root, cfg)
 
@@ -177,7 +177,7 @@ async def _enrich_graph(
     config: Config,
 ) -> None:
     """Use LLM to annotate graph edges with descriptions."""
-    from salt_doc_gen.models import EdgeType
+    from repotalk.models import EdgeType
 
     prompt_path = Path(__file__).parent.parent / "prompts" / "graph_enrich.md"
     system_prompt = prompt_path.read_text() if prompt_path.exists() else (
@@ -247,13 +247,13 @@ def rollup(path: Path, config_file: str | None, verbose: bool) -> None:
     cfg = _load_cfg(config_file, path)
     root = path.resolve()
 
-    from salt_doc_gen.llm_client import LLMClient
-    from salt_doc_gen.output import (
+    from repotalk.llm_client import LLMClient
+    from repotalk.output import (
         load_file_docs,
         write_directory_summaries,
         write_project_summary,
     )
-    from salt_doc_gen.rollup import rollup_all
+    from repotalk.rollup import rollup_all
 
     docs = load_file_docs(root, cfg)
     if not docs:
@@ -284,12 +284,12 @@ def run(path: Path, config_file: str | None, verbose: bool) -> None:
     cfg = _load_cfg(config_file, path)
     root = path.resolve()
 
-    from salt_doc_gen.analyzer import analyze_file
-    from salt_doc_gen.crawler import crawl
-    from salt_doc_gen.documenter import document_all
-    from salt_doc_gen.graph import KnowledgeGraph
-    from salt_doc_gen.llm_client import LLMClient
-    from salt_doc_gen.output import (
+    from repotalk.analyzer import analyze_file
+    from repotalk.crawler import crawl
+    from repotalk.documenter import document_all
+    from repotalk.graph import KnowledgeGraph
+    from repotalk.llm_client import LLMClient
+    from repotalk.output import (
         load_hash_cache,
         save_hash_cache,
         write_analysis_cache,
@@ -298,7 +298,7 @@ def run(path: Path, config_file: str | None, verbose: bool) -> None:
         write_graph,
         write_project_summary,
     )
-    from salt_doc_gen.rollup import rollup_all
+    from repotalk.rollup import rollup_all
 
     total_start = time.monotonic()
     client = LLMClient(cfg)
@@ -357,9 +357,9 @@ def chat(path: Path, config_file: str | None, verbose: bool) -> None:
     cfg = _load_cfg(config_file, path)
     root = path.resolve()
 
-    from salt_doc_gen.chat import ChatSession
-    from salt_doc_gen.llm_client import LLMClient
-    from salt_doc_gen.output import get_output_dir
+    from repotalk.chat import ChatSession
+    from repotalk.llm_client import LLMClient
+    from repotalk.output import get_output_dir
 
     docs_dir = get_output_dir(root, cfg)
     if not docs_dir.exists():
@@ -389,8 +389,8 @@ def context(
     cfg = _load_cfg(config_file, path)
     root = path.resolve()
 
-    from salt_doc_gen.chat import export_context
-    from salt_doc_gen.output import get_output_dir
+    from repotalk.chat import export_context
+    from repotalk.output import get_output_dir
 
     if top_k:
         cfg.chat.top_k = top_k
@@ -413,7 +413,7 @@ def stats(path: Path, config_file: str | None) -> None:
     cfg = _load_cfg(config_file, path)
     root = path.resolve()
 
-    from salt_doc_gen.crawler import crawl
+    from repotalk.crawler import crawl
 
     files = crawl(root, cfg)
 
