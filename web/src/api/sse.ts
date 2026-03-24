@@ -43,47 +43,65 @@ export function sendMessage(
       const decoder = new TextDecoder();
       let buffer = '';
 
-      let currentEventType = '';
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
 
-        for (const line of lines) {
-          // Track SSE event type
-          if (line.startsWith('event: ')) {
-            currentEventType = line.slice(7).trim();
-            continue;
+        // Process complete SSE events (separated by double newline)
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || ''; // Keep incomplete event in buffer
+
+        for (const eventBlock of events) {
+          if (!eventBlock.trim()) continue;
+
+          let eventType = '';
+          let eventData = '';
+
+          for (const line of eventBlock.split('\n')) {
+            if (line.startsWith('event: ')) {
+              eventType = line.slice(7).trim();
+            } else if (line.startsWith('data: ')) {
+              eventData = line.slice(6);
+            }
           }
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6).trim();
-          if (data === '[DONE]') {
+
+          if (!eventData) continue;
+          if (eventData === '[DONE]') {
             callbacks.onDone?.();
             return;
           }
+
           try {
-            const parsed = JSON.parse(data);
-            // Use the SSE event type if the data doesn't have a 'type' matching our dispatch types
-            const event: SSEEvent = {
-              ...parsed,
-              type: _normalizeEventType(parsed.type, currentEventType),
-            };
-            _dispatchEvent(event, callbacks);
+            const parsed = JSON.parse(eventData);
+            const type = eventType || parsed.type || '';
+
+            // Dispatch based on event type
+            if (type === 'token') {
+              callbacks.onToken?.(parsed.content || '');
+            } else if (type === 'reference') {
+              callbacks.onReference?.(parsed.source || parsed.file || '', parsed.line);
+            } else if (type === 'graph_highlight') {
+              callbacks.onGraphHighlight?.(parsed.nodes || []);
+            } else if (type === 'done') {
+              callbacks.onDone?.(parsed.cost);
+              return;
+            } else if (type === 'suggestions') {
+              callbacks.onSuggestions?.(parsed.suggestions || parsed.questions || []);
+            } else if (type === 'error') {
+              callbacks.onError?.(parsed.message || 'Unknown error');
+            }
+            // context_used — skip silently
           } catch {
-            // If it's plain text (token streaming), treat as token
-            if (data && currentEventType === 'token') {
-              callbacks.onToken?.(data);
+            // Non-JSON data in a token event
+            if (eventType === 'token' && eventData) {
+              callbacks.onToken?.(eventData);
             }
           }
-          currentEventType = '';
         }
       }
 
-      // If stream ends without explicit done, signal completion
       callbacks.onDone?.();
     })
     .catch((err) => {
@@ -93,48 +111,4 @@ export function sendMessage(
     });
 
   return controller;
-}
-
-/** Map backend event/type names to our SSEEvent types */
-function _normalizeEventType(dataType: string | undefined, sseEventType: string): SSEEvent['type'] {
-  // Direct matches
-  const t = dataType || sseEventType;
-  const map: Record<string, SSEEvent['type']> = {
-    token: 'token',
-    reference: 'reference',
-    file: 'reference',           // backend sends type:"file" for references
-    directory: 'reference',
-    graph_highlight: 'graph_highlight',
-    done: 'done',
-    suggestions: 'suggestions',
-    error: 'error',
-    context_used: 'context_used',
-  };
-  return map[t] || (sseEventType ? (map[sseEventType] || 'token') : 'token');
-}
-
-function _dispatchEvent(event: SSEEvent, callbacks: SSECallbacks) {
-  switch (event.type) {
-    case 'token':
-      callbacks.onToken?.(event.content || '');
-      break;
-    case 'reference':
-      callbacks.onReference?.(event.source || event.file || '', event.line);
-      break;
-    case 'graph_highlight':
-      callbacks.onGraphHighlight?.(event.nodes || []);
-      break;
-    case 'done':
-      callbacks.onDone?.(event.cost);
-      break;
-    case 'suggestions':
-      callbacks.onSuggestions?.(event.suggestions || event.questions || []);
-      break;
-    case 'error':
-      callbacks.onError?.(event.message || 'Unknown error');
-      break;
-    case 'context_used':
-      // informational, no callback needed
-      break;
-  }
 }
