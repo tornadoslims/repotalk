@@ -123,28 +123,43 @@ async def full_index(
     )
 
 
-@router.get("/{id}/index-status", response_model=IndexStatus)
+@router.get("/{id}/index-status")
 async def get_index_status(
     project: Project = Depends(get_project),
 ):
     existing = indexing.get_task(project.id)
+    # Clean up stale tasks (done or cancelled)
+    if existing and existing.done():
+        existing = None
+    progress = indexing.get_progress(project.id)
     if existing and not existing.done():
-        return IndexStatus(
-            project_id=project.id,
-            status="running",
-            message="Indexing in progress",
-        )
+        return {
+            "project_id": str(project.id),
+            "status": "running",
+            "message": progress.get("message", "Indexing in progress") if progress else "Indexing in progress",
+            "phase": progress.get("phase", "unknown") if progress else "unknown",
+            "progress": progress.get("progress", 0) if progress else 0,
+            "files_done": progress.get("files_done", 0) if progress else 0,
+            "files_total": progress.get("files_total", 0) if progress else 0,
+            "current_file": progress.get("current_file", "") if progress else "",
+        }
     if project.last_indexed_at:
-        return IndexStatus(
-            project_id=project.id,
-            status="completed",
-            message=f"Last indexed: {project.last_indexed_at.isoformat()}",
-        )
-    return IndexStatus(
-        project_id=project.id,
-        status="idle",
-        message="Not yet indexed",
-    )
+        return {
+            "project_id": str(project.id),
+            "status": "completed",
+            "message": f"Last indexed: {project.last_indexed_at.isoformat()}",
+            "phase": "complete",
+            "progress": 1.0,
+            "files_done": project.file_count,
+            "files_total": project.file_count,
+        }
+    return {
+        "project_id": str(project.id),
+        "status": "idle",
+        "message": "Not yet indexed",
+        "phase": "idle",
+        "progress": 0,
+    }
 
 
 @router.post("/{id}/index/incremental", response_model=IndexStatus)

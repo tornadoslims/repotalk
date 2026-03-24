@@ -27,23 +27,31 @@ from server.models_db import (
 
 logger = logging.getLogger("repotalk.indexing")
 
-# Track running tasks
+# Track running tasks and their progress
 _running_tasks: dict[uuid.UUID, asyncio.Task] = {}
+_progress: dict[uuid.UUID, dict] = {}
 
 
 def get_task(project_id: uuid.UUID) -> asyncio.Task | None:
     return _running_tasks.get(project_id)
 
 
-async def _broadcast_progress(project_id: uuid.UUID, phase: str, message: str, progress: float = 0.0):
-    """Broadcast indexing progress via WebSocket if available."""
+def get_progress(project_id: uuid.UUID) -> dict | None:
+    return _progress.get(project_id)
+
+
+async def _broadcast_progress(project_id: uuid.UUID, phase: str, message: str, progress: float = 0.0, **extra):
+    """Broadcast indexing progress via WebSocket and store in memory for polling."""
+    info = {
+        "phase": phase,
+        "message": message,
+        "progress": round(progress, 3),
+        **extra,
+    }
+    _progress[project_id] = info
     try:
         from server.main import ws_manager
-        await ws_manager.send_to_project(project_id, "index_progress", {
-            "phase": phase,
-            "message": message,
-            "progress": progress,
-        })
+        await ws_manager.send_to_project(project_id, "index_progress", info)
     except Exception:
         pass  # WebSocket not available
 
@@ -101,13 +109,24 @@ async def run_full_index(project_id: uuid.UUID, config: Any, llm_client: Any) ->
             graph.build_from_analyses(analyses)
             graph_stats = graph.stats()
 
-            await _broadcast_progress(project_id, "document", f"Documenting {len(analyses)} files...", 0.35)
+            await _broadcast_progress(project_id, "document", f"Documenting {len(analyses)} files...", 0.35,
+                                     files_total=len(analyses), files_done=0)
 
-            # Phase 4: Document files (async)
+            # Phase 4: Document files (async) with per-file progress
             from repotalk.documenter import document_all
             from repotalk.output import load_hash_cache, save_hash_cache
             hash_cache = load_hash_cache(root, config)
-            file_docs = await document_all(analyses, root, llm_client, config, graph, hash_cache)
+
+            async def _doc_progress(done: int, total: int, file_path: str):
+                await _broadcast_progress(
+                    project_id, "document",
+                    f"Documenting files ({done}/{total})... {file_path}",
+                    0.35 + 0.35 * (done / max(total, 1)),
+                    files_total=total, files_done=done, current_file=file_path,
+                )
+
+            file_docs = await document_all(analyses, root, llm_client, config, graph, hash_cache,
+                                           on_progress=_doc_progress)
             save_hash_cache(hash_cache, root, config)
 
             await _broadcast_progress(project_id, "rollup", "Generating summaries...", 0.7)

@@ -18,9 +18,14 @@ export interface Project {
 
 export interface IndexStatus {
   project_id: string;
-  status: 'started' | 'running' | 'completed' | 'failed';
+  status: 'started' | 'running' | 'completed' | 'failed' | 'idle';
   task_id?: string;
   message: string;
+  phase?: string;
+  progress?: number;
+  files_done?: number;
+  files_total?: number;
+  current_file?: string;
 }
 
 // Raw backend graph types

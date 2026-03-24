@@ -9,6 +9,8 @@ from pathlib import Path
 
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
+from typing import Any, Callable
+
 from repotalk.config import Config
 from repotalk.graph import KnowledgeGraph
 from repotalk.llm_client import LLMClient
@@ -173,8 +175,14 @@ async def document_all(
     config: Config,
     graph: KnowledgeGraph | None = None,
     hash_cache: HashCache | None = None,
+    on_progress: "Callable[[int, int, str], Any] | None" = None,
 ) -> list[FileDocumentation]:
-    """Generate documentation for all files, with incremental support."""
+    """Generate documentation for all files, with incremental support.
+    
+    Args:
+        on_progress: Optional async/sync callback(completed, total, file_path)
+                     called after each file is documented.
+    """
     to_process = []
     skipped = 0
 
@@ -193,32 +201,51 @@ async def document_all(
 
     docs: list[FileDocumentation] = []
     errors = 0
+    completed = 0
+    use_rich = on_progress is None  # Only show Rich bar in CLI mode
 
-    with Progress(
+    progress_ctx = Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
         TaskProgressColumn(),
-    ) as progress:
-        task = progress.add_task("Documenting files...", total=len(to_process))
+    ) if use_rich else None
 
-        async def _process(analysis: FileAnalysis) -> FileDocumentation | None:
-            nonlocal errors
-            try:
-                doc = await document_file(analysis, root, client, config, graph)
-                if hash_cache:
-                    hash_cache.update(analysis.relative_path, analysis.file_hash)
-                return doc
-            except Exception as e:
-                errors += 1
-                logger.error("Error documenting %s: %s", analysis.relative_path, e)
-                return None
-            finally:
-                progress.advance(task)
+    async def _process(analysis: FileAnalysis) -> FileDocumentation | None:
+        nonlocal errors, completed
+        try:
+            doc = await document_file(analysis, root, client, config, graph)
+            if hash_cache:
+                hash_cache.update(analysis.relative_path, analysis.file_hash)
+            return doc
+        except Exception as e:
+            errors += 1
+            logger.error("Error documenting %s: %s", analysis.relative_path, e)
+            return None
+        finally:
+            completed += 1
+            if progress_ctx and task_id is not None:
+                progress_ctx.advance(task_id)
+            if on_progress:
+                try:
+                    result = on_progress(completed, len(to_process), analysis.relative_path)
+                    if asyncio.iscoroutine(result):
+                        await result
+                except Exception:
+                    pass
 
+    task_id = None
+    if progress_ctx:
+        progress_ctx.start()
+        task_id = progress_ctx.add_task("Documenting files...", total=len(to_process))
+
+    try:
         tasks = [_process(a) for a in to_process]
         results = await asyncio.gather(*tasks)
         docs = [d for d in results if d is not None]
+    finally:
+        if progress_ctx:
+            progress_ctx.stop()
 
     logger.info("Documented %d files (%d errors)", len(docs), errors)
     return docs
