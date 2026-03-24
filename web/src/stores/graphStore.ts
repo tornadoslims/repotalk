@@ -26,6 +26,8 @@ export const useGraphStore = create<GraphState>((set) => ({
     inherits: true,
     composes: true,
     decorates: true,
+    defines: true,
+    contains: true,
   },
   layoutMode: 'fcose',
   searchQuery: '',

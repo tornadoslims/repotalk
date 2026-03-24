@@ -73,10 +73,10 @@ export function ChatPanel() {
         </div>
 
         {/* Messages */}
-        <MessageList />
+        <MessageList onSend={sendMessage} />
 
         {/* Suggestions */}
-        {suggestedQuestions.length > 0 && <SuggestedQuestions />}
+        {suggestedQuestions.length > 0 && <SuggestedQuestions onSelect={sendMessage} />}
 
         {/* Input */}
         <ChatInput onSend={sendMessage} />

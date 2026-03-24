@@ -2,6 +2,8 @@ import type { Message } from '@/api/types';
 import { MarkdownRenderer } from '@/components/shared/MarkdownRenderer';
 import { ActionButtons } from './ActionButtons';
 import { useUIStore } from '@/stores/uiStore';
+import { useProjectStore } from '@/stores/projectStore';
+import { api } from '@/api/client';
 import { Bot, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -10,13 +12,35 @@ interface ChatMessageProps {
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
-  const { setActiveContextTab } = useUIStore();
+  const { setActiveContextTab, addSourceTab } = useUIStore();
   const isAssistant = message.role === 'assistant';
 
-  const handleReferenceClick = (file: string, line?: number) => {
+  const handleReferenceClick = async (file: string, line?: number) => {
     setActiveContextTab('source');
-    // In a real app, this would update the source view with the referenced file
-    console.log('Navigate to', file, line);
+
+    const projectId = useProjectStore.getState().currentProject?.id;
+    if (!projectId) return;
+
+    // Try to find the file by matching relative_path
+    const files = useProjectStore.getState().files;
+    const match = files.find(
+      (f) => f.relative_path === file || f.relative_path.endsWith(file) || file.endsWith(f.relative_path)
+    );
+
+    if (match) {
+      try {
+        const source = await api.getFileSource(projectId, match.id);
+        addSourceTab({
+          id: match.id,
+          filename: match.relative_path.split('/').pop() || file,
+          content: source.content,
+          language: source.language || match.language || 'plaintext',
+          highlights: line ? [{ startLine: line, endLine: line }] : undefined,
+        });
+      } catch (err) {
+        console.error('Failed to load file source:', err);
+      }
+    }
   };
 
   return (

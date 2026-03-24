@@ -3,9 +3,13 @@ import { useChatStore } from '@/stores/chatStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChatMessage } from './ChatMessage';
 import { StreamingMessage } from './StreamingMessage';
-import { Bot, User } from 'lucide-react';
+import { Bot } from 'lucide-react';
 
-export function MessageList() {
+interface MessageListProps {
+  onSend?: (message: string) => void;
+}
+
+export function MessageList({ onSend }: MessageListProps) {
   const { messages, isStreaming, streamingContent, streamingReferences } = useChatStore();
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -26,7 +30,11 @@ export function MessageList() {
           </p>
           <div className="grid grid-cols-2 gap-2 text-xs">
             {['How does auth work?', 'Trace the login flow', 'What calls this function?', 'Show me the API layer'].map((q) => (
-              <button key={q} className="px-3 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-left text-muted-foreground hover:text-foreground">
+              <button
+                key={q}
+                onClick={() => onSend?.(q)}
+                className="px-3 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-left text-muted-foreground hover:text-foreground"
+              >
                 {q}
               </button>
             ))}

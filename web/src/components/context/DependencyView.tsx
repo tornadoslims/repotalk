@@ -1,22 +1,10 @@
+import { useMemo } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useGraphStore } from '@/stores/graphStore';
 import { Badge } from '@/components/ui/badge';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { NODE_COLORS } from '@/lib/constants';
 import type { GraphNode } from '@/api/types';
-
-const sampleUpstream: Array<{ node: GraphNode; edge_type: string }> = [
-  { node: { id: '1', label: 'main.py', type: 'file' }, edge_type: 'imports' },
-  { node: { id: '2', label: 'routes.py', type: 'file' }, edge_type: 'imports' },
-  { node: { id: '3', label: 'middleware.py', type: 'file' }, edge_type: 'imports' },
-];
-
-const sampleDownstream: Array<{ node: GraphNode; edge_type: string }> = [
-  { node: { id: '4', label: 'models.py', type: 'file' }, edge_type: 'imports' },
-  { node: { id: '5', label: 'database', type: 'module' }, edge_type: 'composes' },
-  { node: { id: '6', label: 'jwt', type: 'external' }, edge_type: 'imports' },
-  { node: { id: '7', label: 'User', type: 'class' }, edge_type: 'calls' },
-];
 
 interface DepColumnProps {
   title: string;
@@ -55,7 +43,27 @@ function DepColumn({ title, icon, items }: DepColumnProps) {
 }
 
 export function DependencyView() {
-  const { selectedNode } = useGraphStore();
+  const { selectedNode, graphData } = useGraphStore();
+
+  const { upstream, downstream } = useMemo(() => {
+    if (!selectedNode || !graphData) return { upstream: [], downstream: [] };
+
+    const nodeMap = new Map(graphData.nodes.map((n) => [n.id, n]));
+
+    // Upstream: edges where this node is the target (things that depend on this)
+    const upstream = graphData.edges
+      .filter((e) => e.target === selectedNode.id)
+      .map((e) => ({ node: nodeMap.get(e.source)!, edge_type: e.type }))
+      .filter((e) => e.node);
+
+    // Downstream: edges where this node is the source (things this depends on)
+    const downstream = graphData.edges
+      .filter((e) => e.source === selectedNode.id)
+      .map((e) => ({ node: nodeMap.get(e.target)!, edge_type: e.type }))
+      .filter((e) => e.node);
+
+    return { upstream, downstream };
+  }, [selectedNode, graphData]);
 
   return (
     <div className="h-full flex flex-col">
@@ -65,13 +73,13 @@ export function DependencyView() {
         </div>
       ) : (
         <div className="px-3 py-2 border-b border-border text-sm text-muted-foreground">
-          Select a node to see dependencies (showing sample data)
+          Select a node in the graph to see its dependencies
         </div>
       )}
       <div className="flex-1 flex">
-        <DepColumn title="Upstream (depends on this)" icon={<ArrowUp className="w-4 h-4 text-green-400" />} items={sampleUpstream} />
+        <DepColumn title="Upstream (depends on this)" icon={<ArrowUp className="w-4 h-4 text-green-400" />} items={upstream} />
         <div className="w-px bg-border" />
-        <DepColumn title="Downstream (this depends on)" icon={<ArrowDown className="w-4 h-4 text-blue-400" />} items={sampleDownstream} />
+        <DepColumn title="Downstream (this depends on)" icon={<ArrowDown className="w-4 h-4 text-blue-400" />} items={downstream} />
       </div>
     </div>
   );
