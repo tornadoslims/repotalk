@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RepoTalk</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+</head>
+<body>
+  <!-- Top bar -->
+  <header id="topbar">
+    <div class="topbar-left">
+      <h1>RepoTalk</h1>
+      <select id="project-select"><option value="">Select a project...</option></select>
+      <button id="btn-new-project" title="Add project">+</button>
+    </div>
+    <div id="project-stats" class="topbar-right"></div>
+  </header>
+
+  <!-- New project modal -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Add Project</h2>
+      <label>Name<input id="np-name" type="text" placeholder="my-project"></label>
+      <label>Source Path<input id="np-path" type="text" placeholder="/path/to/repo"></label>
+      <div class="modal-actions">
+        <button id="np-cancel" class="btn-secondary">Cancel</button>
+        <button id="np-create" class="btn-primary">Create &amp; Index</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main layout -->
+  <main id="main">
+    <!-- Left panel: Chat -->
+    <section id="left-panel">
+      <div id="conv-bar">
+        <select id="conv-select"><option value="">New conversation</option></select>
+      </div>
+      <div id="messages"></div>
+      <div id="chat-input-area">
+        <textarea id="chat-input" placeholder="Ask about your codebase..." rows="2"></textarea>
+        <button id="btn-send" title="Send">&#9654;</button>
+      </div>
+    </section>
+
+    <!-- Right panel: Tabs -->
+    <section id="right-panel">
+      <nav id="tab-bar">
+        <button class="tab active" data-tab="source">Source</button>
+        <button class="tab" data-tab="graph">Graph</button>
+        <button class="tab" data-tab="docs">Docs</button>
+      </nav>
+      <div id="tab-source" class="tab-content active">
+        <div id="source-header"></div>
+        <pre><code id="source-code" class="hljs">Select a file reference to view source code.</code></pre>
+      </div>
+      <div id="tab-graph" class="tab-content">
+        <div id="graph-controls">
+          <button id="btn-load-graph" class="btn-secondary">Load Graph</button>
+          <span id="graph-info"></span>
+        </div>
+        <div id="cy"></div>
+      </div>
+      <div id="tab-docs" class="tab-content">
+        <div id="docs-tree"></div>
+        <div id="docs-content"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Status bar -->
+  <footer id="statusbar">
+    <span id="status-text">Ready</span>
+    <span id="index-progress" class="hidden"></span>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

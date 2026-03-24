@@ -17,6 +17,8 @@ from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from server.database import init_db
 from server.dependencies import set_shared_config, set_shared_llm_client
@@ -195,6 +197,15 @@ async def websocket_project(ws: WebSocket, project_id: uuid.UUID):
             await ws.receive_text()  # Keep alive
     except WebSocketDisconnect:
         ws_manager.disconnect(ws, channel)
+
+
+# --- Static files ---
+
+@app.get("/", include_in_schema=False)
+async def serve_root():
+    return FileResponse("static/index.html")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 # --- CLI entry point ---
