@@ -209,10 +209,13 @@
     if (references && references.length > 0) {
       const refsDiv = document.createElement('div');
       refsDiv.className = 'references';
+      const seen = new Set();
       references.forEach((ref) => {
+        const source = typeof ref === 'string' ? ref : ref.source || ref.path || '';
+        if (!source || seen.has(source)) return;
+        seen.add(source);
         const chip = document.createElement('span');
         chip.className = 'ref-chip';
-        const source = typeof ref === 'string' ? ref : ref.source || ref.path || '';
         chip.textContent = source.split('/').slice(-2).join('/');
         chip.title = source;
         chip.addEventListener('click', () => openSourceFile(source));
@@ -408,7 +411,15 @@
     try {
       // Find the file ID from the files list
       const files = await api(`/api/projects/${currentProjectId}/files`);
-      const file = files.find((f) => f.relative_path === path || path.endsWith(f.relative_path) || f.relative_path.endsWith(path));
+      // Strip .md suffix from doc reference paths to match source file paths
+      const cleanPath = path.replace(/\.md$/, '');
+      const file = files.find((f) => 
+        f.relative_path === path || 
+        f.relative_path === cleanPath ||
+        cleanPath.endsWith(f.relative_path) || 
+        f.relative_path.endsWith(cleanPath) ||
+        path.endsWith(f.relative_path)
+      );
       if (!file) {
         $('#source-code').textContent = `File not found: ${path}`;
         return;
