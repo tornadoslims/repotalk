@@ -176,13 +176,18 @@ async def document_all(
     graph: KnowledgeGraph | None = None,
     hash_cache: HashCache | None = None,
     on_progress: "Callable[[int, int, str], Any] | None" = None,
+    write_immediately: bool = True,
 ) -> list[FileDocumentation]:
     """Generate documentation for all files, with incremental support.
     
     Args:
         on_progress: Optional async/sync callback(completed, total, file_path)
                      called after each file is documented.
+        write_immediately: Write each .md file to disk as soon as it's generated
+                          (crash-safe — no work is lost if the process dies).
     """
+    from repotalk.output import get_output_dir, save_hash_cache
+
     to_process = []
     skipped = 0
 
@@ -199,6 +204,7 @@ async def document_all(
         logger.info("No files to document")
         return []
 
+    output_dir = get_output_dir(root, config) if write_immediately else None
     docs: list[FileDocumentation] = []
     errors = 0
     completed = 0
@@ -217,6 +223,12 @@ async def document_all(
             doc = await document_file(analysis, root, client, config, graph)
             if hash_cache:
                 hash_cache.update(analysis.relative_path, analysis.file_hash)
+            # Write to disk immediately so work isn't lost on crash
+            if write_immediately and output_dir and doc:
+                rel = Path(doc.relative_path)
+                out_path = output_dir / f"{rel}.md"
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+                out_path.write_text(doc.full_markdown)
             return doc
         except Exception as e:
             errors += 1
@@ -224,6 +236,12 @@ async def document_all(
             return None
         finally:
             completed += 1
+            # Save hash cache periodically (every 20 files) so progress survives crashes
+            if hash_cache and completed % 20 == 0:
+                try:
+                    save_hash_cache(hash_cache, root, config)
+                except Exception:
+                    pass
             if progress_ctx and task_id is not None:
                 progress_ctx.advance(task_id)
             if on_progress:
@@ -246,6 +264,12 @@ async def document_all(
     finally:
         if progress_ctx:
             progress_ctx.stop()
+        # Final hash cache save
+        if hash_cache:
+            try:
+                save_hash_cache(hash_cache, root, config)
+            except Exception:
+                pass
 
     logger.info("Documented %d files (%d errors)", len(docs), errors)
     return docs
