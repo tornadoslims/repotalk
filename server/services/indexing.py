@@ -109,13 +109,19 @@ async def run_full_index(project_id: uuid.UUID, config: Any, llm_client: Any) ->
             graph.build_from_analyses(analyses)
             graph_stats = graph.stats()
 
-            await _broadcast_progress(project_id, "document", f"Documenting {len(analyses)} files...", 0.35,
-                                     files_total=len(analyses), files_done=0)
-
             # Phase 4: Document files (async) with per-file progress
+            # Uses hash cache: unchanged files are skipped, docs written to disk immediately
             from repotalk.documenter import document_all
-            from repotalk.output import load_hash_cache, save_hash_cache
+            from repotalk.output import get_output_dir as _get_output_dir, load_hash_cache, save_hash_cache
             hash_cache = load_hash_cache(root, config)
+            pre_output_dir = _get_output_dir(root, config)
+
+            # Count how many files actually need documenting (for accurate progress)
+            need_doc = sum(1 for a in analyses if hash_cache.is_changed(a.relative_path, a.file_hash))
+            already_done = len(analyses) - need_doc
+            await _broadcast_progress(project_id, "document",
+                                     f"Documenting {need_doc} files ({already_done} cached)...", 0.35,
+                                     files_total=need_doc, files_done=0)
 
             async def _doc_progress(done: int, total: int, file_path: str):
                 await _broadcast_progress(
@@ -128,6 +134,27 @@ async def run_full_index(project_id: uuid.UUID, config: Any, llm_client: Any) ->
             file_docs = await document_all(analyses, root, llm_client, config, graph, hash_cache,
                                            on_progress=_doc_progress)
             save_hash_cache(hash_cache, root, config)
+
+            # Also load docs from disk for files that were cached (already documented in prior runs)
+            # This ensures the full set is available for rollup and DB persist
+            from repotalk.models import FileDocumentation
+            doc_paths_on_disk = {str(p.relative_to(pre_output_dir)): p
+                                 for p in pre_output_dir.rglob("*.py.md")}
+            file_doc_set = {d.relative_path for d in file_docs}
+            for analysis in analyses:
+                if analysis.relative_path not in file_doc_set:
+                    md_key = f"{analysis.relative_path}.md"
+                    disk_path = doc_paths_on_disk.get(md_key)
+                    if disk_path and disk_path.exists():
+                        content = disk_path.read_text(errors="replace")
+                        file_docs.append(FileDocumentation(
+                            file_path=analysis.file_path,
+                            relative_path=analysis.relative_path,
+                            full_markdown=content,
+                            file_hash=analysis.file_hash,
+                        ))
+            logger.info("Total file docs: %d (%d new, %d from cache)",
+                        len(file_docs), need_doc - (len(analyses) - len(file_docs)), already_done)
 
             await _broadcast_progress(project_id, "rollup", "Generating summaries...", 0.7)
 
