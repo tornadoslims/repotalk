@@ -16,7 +16,7 @@ export function MarkdownRenderer({ content, className, onReferenceClick }: Markd
   );
 
   return (
-    <div className={cn('prose prose-sm dark:prose-invert max-w-none', className)}>
+    <div className={cn('prose prose-sm dark:prose-invert max-w-none text-foreground prose-p:text-foreground prose-headings:text-foreground prose-strong:text-foreground prose-li:text-foreground', className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
