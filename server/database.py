@@ -46,7 +46,7 @@ class Base(DeclarativeBase):
 
 
 async def init_db() -> None:
-    """Create all tables (used in solo/dev mode)."""
+    """Create all tables and ensure solo user exists."""
     if _is_sqlite:
         @event.listens_for(engine.sync_engine, "connect")
         def _set_sqlite_pragma(dbapi_conn, _record):
@@ -69,6 +69,18 @@ async def init_db() -> None:
             User,
         )
         await conn.run_sync(Base.metadata.create_all)
+
+    # Ensure the solo/anonymous user exists for FK references
+    import uuid as _uuid
+    from sqlalchemy import select as _select
+    from server.models_db import User
+    _SOLO_USER_ID = _uuid.UUID("00000000-0000-0000-0000-000000000000")
+    async with async_session() as session:
+        result = await session.execute(_select(User).where(User.id == _SOLO_USER_ID))
+        if not result.scalar_one_or_none():
+            solo = User(id=_SOLO_USER_ID, username="solo", email="solo@localhost", role="admin")
+            session.add(solo)
+            await session.commit()
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
