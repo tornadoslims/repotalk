@@ -155,6 +155,16 @@ async def run_full_index(project_id: uuid.UUID, config: Any, llm_client: Any) ->
 
             output_dir = get_output_dir(root, config)
 
+            # Phase 6.5: Build vector index for RAG chat
+            await _broadcast_progress(project_id, "embedding", "Building vector search index...", 0.87)
+            try:
+                from repotalk.retriever import VectorRetriever
+                vector_retriever = VectorRetriever(config, output_dir)
+                await vector_retriever._ensure_collection()
+                logger.info("Vector index built for %s", project.name)
+            except Exception as exc:
+                logger.warning("Vector indexing failed (chat will use keyword search): %s", exc)
+
             await _broadcast_progress(project_id, "persist", "Saving to database...", 0.9)
 
             # Phase 7: Persist to database
