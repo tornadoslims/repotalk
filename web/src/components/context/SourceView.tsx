@@ -152,11 +152,14 @@ export function SourceView() {
       {/* Tab bar */}
       <div className="flex items-center border-b border-border bg-muted/30 overflow-x-auto">
         {tabs.map((tab) => (
-          <button
+          <div
             key={tab.id}
+            role="tab"
+            tabIndex={0}
             onClick={() => setActiveTab(tab.id)}
+            onKeyDown={(e) => e.key === 'Enter' && setActiveTab(tab.id)}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-xs border-r border-border shrink-0 group',
+              'flex items-center gap-1.5 px-3 py-1.5 text-xs border-r border-border shrink-0 group cursor-pointer',
               activeTab === tab.id
                 ? 'bg-card text-foreground'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -172,7 +175,7 @@ export function SourceView() {
             >
               <X className="w-3 h-3" />
             </button>
-          </button>
+          </div>
         ))}
       </div>
 
