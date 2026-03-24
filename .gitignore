@@ -43,3 +43,9 @@ web/dist/
 server/__pycache__/
 **/__pycache__/
 config.yaml
+repotalk.db
+repotalk.db-shm
+repotalk.db-wal
+*.db
+*.db-shm
+*.db-wal
