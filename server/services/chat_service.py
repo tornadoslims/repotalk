@@ -68,9 +68,25 @@ async def stream_chat_response(
     references = []
 
     try:
-        from repotalk.retriever import DocumentRetriever
-        retriever = DocumentRetriever(config, docs_dir)
-        contexts = retriever.retrieve_keyword(user_message, top_k=config.chat.top_k)
+        # Try vector retrieval first (semantic search), fall back to keyword
+        retriever = None
+        contexts = []
+        if config.chat.retrieval_method == "vector":
+            try:
+                from repotalk.retriever import VectorRetriever
+                vr = VectorRetriever(config, docs_dir)
+                contexts = await vr.retrieve(user_message, top_k=config.chat.top_k)
+                retriever = vr
+                logger.info("Vector retrieval: %d results for '%s'", len(contexts), user_message[:50])
+            except Exception as vec_err:
+                logger.warning("Vector retrieval failed, falling back to keyword: %s", vec_err)
+                contexts = []
+
+        if not contexts:
+            from repotalk.retriever import DocumentRetriever
+            retriever = DocumentRetriever(config, docs_dir)
+            contexts = retriever.retrieve_keyword(user_message, top_k=config.chat.top_k)
+            logger.info("Keyword retrieval: %d results for '%s'", len(contexts), user_message[:50])
 
         for ctx in contexts:
             context_pieces.append(ctx)

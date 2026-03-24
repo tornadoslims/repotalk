@@ -93,6 +93,22 @@ async def lifespan(app: FastAPI):
     # Store on app state for WebSocket access
     app.state.ws_manager = ws_manager
 
+    # Auto-start file watchers for all indexed projects
+    try:
+        from sqlalchemy import select
+        from server.database import async_session
+        from server.models_db import Project
+        from server.services.watcher import start_watcher
+        async with async_session() as db:
+            result = await db.execute(select(Project).where(Project.last_indexed_at.isnot(None)))
+            for project in result.scalars().all():
+                try:
+                    start_watcher(project.id, project.source_path)
+                except Exception as e:
+                    logger.warning("Failed to start watcher for %s: %s", project.name, e)
+    except Exception:
+        logger.exception("Failed to auto-start watchers")
+
     yield
 
     # Shutdown
