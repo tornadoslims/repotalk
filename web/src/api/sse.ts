@@ -43,6 +43,8 @@ export function sendMessage(
       const decoder = new TextDecoder();
       let buffer = '';
 
+      let currentEventType = '';
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -52,6 +54,11 @@ export function sendMessage(
         buffer = lines.pop() || '';
 
         for (const line of lines) {
+          // Track SSE event type
+          if (line.startsWith('event: ')) {
+            currentEventType = line.slice(7).trim();
+            continue;
+          }
           if (!line.startsWith('data: ')) continue;
           const data = line.slice(6).trim();
           if (data === '[DONE]') {
@@ -59,11 +66,20 @@ export function sendMessage(
             return;
           }
           try {
-            const event: SSEEvent = JSON.parse(data);
+            const parsed = JSON.parse(data);
+            // Use the SSE event type if the data doesn't have a 'type' matching our dispatch types
+            const event: SSEEvent = {
+              ...parsed,
+              type: _normalizeEventType(parsed.type, currentEventType),
+            };
             _dispatchEvent(event, callbacks);
           } catch {
-            // skip malformed JSON
+            // If it's plain text (token streaming), treat as token
+            if (data && currentEventType === 'token') {
+              callbacks.onToken?.(data);
+            }
           }
+          currentEventType = '';
         }
       }
 
@@ -77,6 +93,24 @@ export function sendMessage(
     });
 
   return controller;
+}
+
+/** Map backend event/type names to our SSEEvent types */
+function _normalizeEventType(dataType: string | undefined, sseEventType: string): SSEEvent['type'] {
+  // Direct matches
+  const t = dataType || sseEventType;
+  const map: Record<string, SSEEvent['type']> = {
+    token: 'token',
+    reference: 'reference',
+    file: 'reference',           // backend sends type:"file" for references
+    directory: 'reference',
+    graph_highlight: 'graph_highlight',
+    done: 'done',
+    suggestions: 'suggestions',
+    error: 'error',
+    context_used: 'context_used',
+  };
+  return map[t] || (sseEventType ? (map[sseEventType] || 'token') : 'token');
 }
 
 function _dispatchEvent(event: SSEEvent, callbacks: SSECallbacks) {

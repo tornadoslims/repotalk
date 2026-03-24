@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { useChatStore } from '@/stores/chatStore';
 import { useUIStore } from '@/stores/uiStore';
+import { useChat } from '@/hooks/useChat';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { SuggestedQuestions } from './SuggestedQuestions';
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 export function ChatPanel() {
   const { conversations, currentConversation, setCurrentConversation, messages, suggestedQuestions } = useChatStore();
   const { conversationListOpen, setConversationListOpen } = useUIStore();
+  const { sendMessage } = useChat();
 
   return (
     <div className="flex h-full">
@@ -78,7 +79,7 @@ export function ChatPanel() {
         {suggestedQuestions.length > 0 && <SuggestedQuestions />}
 
         {/* Input */}
-        <ChatInput />
+        <ChatInput onSend={sendMessage} />
       </div>
     </div>
   );
